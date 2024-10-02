@@ -1,0 +1,24 @@
+android_app {
+    name: "GeocoderProvider",
+    srcs: ["java/**/*.kt"],
+    manifest: "AndroidManifest.xml",
+
+    certificate: "platform",
+    privileged: true,
+    system_ext_specific: true,
+    platform_apis: true,
+
+    static_libs: [
+        "androidx.core_core",
+    ],
+
+    required: ["privapp_whitelist_app.grapheneos.geocoder"],
+}
+
+prebuilt_etc {
+    name: "privapp_whitelist_app.grapheneos.geocoder",
+    system_ext_specific: true,
+    src: "privapp_whitelist_app.grapheneos.geocoder.xml",
+    sub_dir: "permissions",
+    filename_from_src: true,
+}
