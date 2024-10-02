@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<permissions>
+    <privapp-permissions package="app.grapheneos.geocoder">
+        <permission name="android.permission.INSTALL_LOCATION_PROVIDER"/>
+    </privapp-permissions>
+</permissions>
