@@ -1,4 +1,9 @@
 
+# keep model classes needed for gson to work
+-keep,allowoptimization class app.grapheneos.androidgeocoder.model.** {
+  *;
+}
+
 # from gson
 # https://github.com/google/gson/blob/main/Troubleshooting.md#-illegalstateexception-typetoken-must-be-created-with-a-type-argument--runtimeexception-missing-type-parameter
 

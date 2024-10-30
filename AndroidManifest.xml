@@ -8,7 +8,7 @@
     <application
         android:label="Geocoder Provider">
         <service
-            android:name=".GeocodeMockApp"
+            android:name=".GeocodeProvider"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.android.location.service.GeocodeProvider" />
