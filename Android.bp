@@ -10,7 +10,11 @@ android_app {
 
     static_libs: [
         "androidx.core_core",
+        "gson"
     ],
+    optimize: {
+        proguard_flags_files: ["proguard.flags"],
+    },
 
     required: ["privapp_whitelist_app.grapheneos.geocoder"],
 }

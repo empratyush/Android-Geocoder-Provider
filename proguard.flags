@@ -1,0 +1,13 @@
+
+# from gson
+# https://github.com/google/gson/blob/main/Troubleshooting.md#-illegalstateexception-typetoken-must-be-created-with-a-type-argument--runtimeexception-missing-type-parameter
+
+# Keep generic signatures; needed for correct type resolution
+-keepattributes Signature
+
+# Keep class TypeToken (respectively its generic signature)
+-keep class com.google.gson.reflect.TypeToken { *; }
+
+# Keep any (anonymous) classes extending TypeToken
+-keep class * extends com.google.gson.reflect.TypeToken
+
