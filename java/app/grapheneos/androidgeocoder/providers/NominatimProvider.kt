@@ -19,10 +19,9 @@ import kotlinx.coroutines.withContext
 private const val STATUS_CODE_SUCCESS = 200
 private const val DEFAULT_LAT_LONG = 0.0 //0.0 is default
 
-
 class NominatimProvider(
-    private val baseUrl: String,
-    private val gson: Gson = Gson()
+    private val gson: Gson = Gson(),
+    private val baseUrl: () -> String,
 ) : Provider {
 
     private fun Double.isDefault() = this == DEFAULT_LAT_LONG
@@ -37,8 +36,13 @@ class NominatimProvider(
     ): ForwardLookupResponse {
         return try {
 
+            val serverAddress = baseUrl()
+            if (serverAddress.isEmpty()) {
+                return ForwardLookupResponse.Failed("")
+            }
+
             val coreSearch =
-                "$baseUrl/search.php?format=json&bounded=1&addressdetails=1&limit=$maxResults&q=$locationName"
+                "${serverAddress}/search?format=json&bounded=1&addressdetails=1&limit=$maxResults&q=$locationName"
 
             val url =
                 if (lowerLeftLatitude.isDefault() &&
@@ -72,7 +76,11 @@ class NominatimProvider(
 
     override suspend fun reverseLookup(latitude: Double, longitude: Double): ReverseLookupResponse {
         return try {
-            ReverseLookupResponse.Success(reverseLookupImpl(latitude, longitude))
+            val serverAddress = baseUrl()
+            if (serverAddress.isEmpty()) {
+                return ReverseLookupResponse.Failed("")
+            }
+            ReverseLookupResponse.Success(reverseLookupImpl(serverAddress, latitude, longitude))
         } catch (e: JSONException) {
             ReverseLookupResponse.Failed(e.localizedMessage)
         } catch (e: MalformedURLException) {
@@ -88,8 +96,8 @@ class NominatimProvider(
         MalformedURLException::class,
         IOException::class,
         CancellationException::class)
-    suspend fun reverseLookupImpl(latitude: Double, longitude: Double): Address {
-        val url = "$baseUrl/reverse?lat=$latitude&lon=$longitude&format=json&zoom=18"
+    suspend fun reverseLookupImpl(serverAddress: String, latitude: Double, longitude: Double): Address {
+        val url = "$serverAddress/reverse?lat=$latitude&lon=$longitude&format=json&zoom=18"
         val response = String(getResponseFromUrl(url))
         val responseType = object : TypeToken<LookupResponse>() {}.type
         val responses = gson.fromJson<LookupResponse>(response, responseType)

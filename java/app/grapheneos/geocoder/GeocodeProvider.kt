@@ -2,12 +2,17 @@ package app.grapheneos.geocoder
 
 import android.app.Service
 import android.content.Intent
+import android.database.ContentObserver
+import android.ext.settings.GeocodingSettings
 import android.location.Address
 import android.location.provider.ForwardGeocodeRequest
 import android.location.provider.GeocodeProviderBase
 import android.location.provider.ReverseGeocodeRequest
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.OutcomeReceiver
+import android.provider.Settings
 import app.grapheneos.androidgeocoder.model.forwardLookup.ForwardLookupResponse
 import app.grapheneos.androidgeocoder.model.reverseLookup.ReverseLookupResponse
 import app.grapheneos.androidgeocoder.providers.NominatimProvider
@@ -24,6 +29,7 @@ class GeocodeProvider : Service() {
 
     private val networkScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val logger = Logger("GeocodeMockApp")
+    private var url = ""
 
     private fun runWithTimeout(
         timeout: Long = Duration.ofMinutes(1).toMillis(),
@@ -74,12 +80,47 @@ class GeocodeProvider : Service() {
         }
     }
 
-    //TODO: replace the base url with self hosted one.
-    private val provider by lazy { NominatimProvider("https://nominatim.openstreetmap.org") }
+    private val provider by lazy {
+        NominatimProvider {
+            url
+        }
+    }
+
+    private val settingsObserver = object: ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) {
+            super.onChange(selfChange)
+            logger.d("settings updated")
+            updateUri()
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
         logger.d("onCreate: ")
+
+        val geocodingKey = Settings.Global.getUriFor(GeocodingSettings.GEOCODING_SETTINGS.key)
+        contentResolver.registerContentObserver(
+            geocodingKey,
+            false,
+            settingsObserver
+        )
+        updateUri()
+    }
+
+    private fun updateUri() {
+        val value = GeocodingSettings.GEOCODING_SETTINGS.get(this)
+        when (value) {
+            GeocodingSettings.GEOCODING_DISABLED -> {
+                url = ""
+            }
+            GeocodingSettings.GEOCODING_SERVER_NOMINATIM -> {
+                url = "https://nominatim.openstreetmap.org/"
+            }
+            GeocodingSettings.GEOCODING_SERVER_GRAPHENEOS_PROXY -> {
+                url = "https://nominatim.grapheneos.org/"
+            }
+        }
+        logger.d("base url updated to $url")
     }
 
     private suspend fun handleForwardRequest(
@@ -136,6 +177,7 @@ class GeocodeProvider : Service() {
 
     override fun onDestroy() {
         logger.d("onDestroy: ")
+        contentResolver.unregisterContentObserver(settingsObserver)
         super.onDestroy()
     }
 }
