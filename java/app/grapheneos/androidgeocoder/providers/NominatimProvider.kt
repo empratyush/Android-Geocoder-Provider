@@ -110,22 +110,31 @@ class NominatimProvider(
         IOException::class,
         CancellationException::class)
     private suspend fun getResponseFromUrl(url: String): ByteArray = withContext(Dispatchers.IO) {
-        val connection = URL(url).openConnection() as HttpURLConnection
-        val timeout = Duration.ofSeconds(20).toMillis().toInt()
+        var connection : HttpURLConnection? = null
+        val response : ByteArray
+        try {
+            connection = URL(url).openConnection() as HttpURLConnection
+            val timeout = Duration.ofSeconds(20).toMillis().toInt()
 
-        connection.readTimeout = timeout
-        connection.connectTimeout = timeout
+            connection.readTimeout = timeout
+            connection.connectTimeout = timeout
 
-        connection.connect()
+            connection.connect()
+            if (connection.responseCode != STATUS_CODE_SUCCESS) {
+                throw IOException("request failed, response code ${connection.responseCode}")
+            }
+            //TODO as of now response is few KBs
+            //but convert it into reading chunk of 4KB
+            //and call `ensureActive` to properly respect
+            //cancellation request
+            response = connection.inputStream.use { it.readAllBytes() }
 
-        if (connection.responseCode != STATUS_CODE_SUCCESS) {
-            throw IOException("request failed, response code ${connection.responseCode}")
+        } finally {
+            connection?.disconnect()
         }
-        //TODO as of now response is few KBs
-        //but convert it into reading chunk of 4KB
-        //and call `ensureActive` to properly respect
-        //cancellation request
-        connection.inputStream.readAllBytes()
+
+        return@withContext response
+
     }
 
 }
